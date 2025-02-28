@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparación Salarial en Tiempo Real</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(45deg, #0a74da, #00c2cb);
+            color: white;
+            text-align: center;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .hidden { display: none; }
+
+        #setup-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        input {
+            padding: 10px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            width: 200px;
+        }
+
+        .button {
+            font-size: 1.2rem;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin: 10px;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .start { background: #28a745; color: white; }
+        .stop { background: #dc3545; color: white; }
+        .add { background: #007bff; color: white; }
+
+        .button:hover { transform: scale(1.1); }
+
+        .container { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-top: 20px; }
+        .box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.3);
+            min-width: 200px;
+        }
+
+        .name { font-size: 1.5rem; font-weight: bold; }
+        .counter { font-size: 2rem; font-weight: bold; margin-top: 10px; }
+        #timer { font-size: 2rem; margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>💰 Comparación Salarial en Tiempo Real 💰</h1>
+
+    <!-- Formulario para ingresar personas -->
+    <div id="setup-form">
+        <input type="text" id="name" placeholder="Nombre">
+        <input type="number" id="salary" placeholder="Salario anual (€)">
+        <button class="button add" onclick="addPerson()">Agregar Persona</button>
+        <button class="button start" onclick="startSimulation()">Iniciar Simulación</button>
+        <div id="people-list"></div>
+    </div>
+
+    <!-- Contador y simulación -->
+    <div id="simulation" class="hidden">
+        <div id="timer">⏳ Tiempo: 0s</div>
+        <div class="container" id="people-container"></div>
+        <button class="button stop" onclick="stopSimulation()">Detener Simulación</button>
+    </div>
+
+    <script>
+        let people = [];
+        let totalEarned = {};
+        let interval = null;
+        let startTime = 0;
+
+        function addPerson() {
+            let name = document.getElementById("name").value;
+            let salary = parseFloat(document.getElementById("salary").value);
+
+            if (name && salary > 0) {
+                people.push({ name, salary });
+                document.getElementById("name").value = "";
+                document.getElementById("salary").value = "";
+                updatePeopleList();
+            }
+        }
+
+        function updatePeopleList() {
+            let list = document.getElementById("people-list");
+            list.innerHTML = "<b>Personas agregadas:</b><br>" + people.map(p => `${p.name} - ${formatMoney(p.salary)}`).join("<br>");
+        }
+
+        function startSimulation() {
+            if (people.length === 0) return alert("Agrega al menos una persona.");
+
+            document.getElementById("setup-form").classList.add("hidden");
+            document.getElementById("simulation").classList.remove("hidden");
+
+            let container = document.getElementById("people-container");
+            container.innerHTML = "";
+            totalEarned = {};
+            startTime = Date.now();
+
+            people.forEach(person => {
+                totalEarned[person.name] = 0;
+                let div = document.createElement("div");
+                div.classList.add("box");
+                div.innerHTML = `
+                    <div class="name">${person.name}</div>
+                    <div id="counter-${person.name}" class="counter">0,000 €</div>
+                `;
+                container.appendChild(div);
+            });
+
+            if (interval === null) {
+                interval = setInterval(() => {
+                    let elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                    document.getElementById("timer").innerText = `⏳ Tiempo: ${elapsedSeconds}s`;
+
+                    people.forEach(person => {
+                        let increment = (person.salary / (365 * 24 * 60 * 60 * 1000)) * 10;
+                        totalEarned[person.name] += increment;
+                        document.getElementById(`counter-${person.name}`).innerText = formatMoney(totalEarned[person.name]);
+                    });
+                }, 10); // Cada 10ms
+            }
+        }
+
+        function stopSimulation() {
+            clearInterval(interval);
+            interval = null;
+        }
+
+        function formatMoney(amount) {
+            let parts = amount.toFixed(3).split(".");
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            return parts.join(",") + " €";
+        }
+    </script>
+
+</body>
+</html>
